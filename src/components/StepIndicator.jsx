@@ -1,3 +1,4 @@
+import React from 'react';
 import { ORDER_STEPS, getStatusIndex } from '../constants/orderStatus';
 
 /**
@@ -32,9 +33,9 @@ export default function StepIndicator({ currentStatus }) {
         const isCurrent = i === currentIdx;
 
         return (
-          <>
+          <React.Fragment key={step}>
             {/* 단계 원형 아이콘 */}
-            <div key={step} className="flex flex-col items-center">
+            <div className="flex flex-col items-center">
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0
                   ${isCurrent ? 'bg-blue-600 text-white ring-2 ring-blue-200' : isDone ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}
@@ -52,7 +53,7 @@ export default function StepIndicator({ currentStatus }) {
             {i < ORDER_STEPS.length - 1 && (
               <div className={`flex-1 h-0.5 mx-2 ${i < currentIdx ? 'bg-blue-600' : 'bg-gray-200'}`} />
             )}
-          </>
+          </React.Fragment>
         );
       })}
     </div>

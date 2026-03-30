@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import StepIndicator from '../components/StepIndicator';
 import { formatDateTime } from '../utils/dateUtils';
-import { formatCurrency, formatDistance, formatArray } from '../utils/formatUtils';
+import { formatCurrency, formatDistance, formatArray, formatPhoneNumber } from '../utils/formatUtils';
 
 /**
  * 정보 행 컴포넌트
@@ -84,25 +84,58 @@ export default function OrderDetailPage() {
 function RouteSection({ order }) {
   return (
     <div className="bg-white mx-4 mt-3 rounded-xl shadow-sm border border-gray-100 p-4">
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-        구간 정보
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+          구간 정보
+        </h2>
+        {/* 주문 유형 뱃지 */}
+        <div className="flex items-center gap-1.5">
+          {order.IsRound && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-purple-50 text-purple-600 rounded">
+              왕복
+            </span>
+          )}
+          {!order.IsRound && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-gray-50 text-gray-600 rounded">
+              편도
+            </span>
+          )}
+          {order.IsAllowMix ? (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 rounded">
+              혼적
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-green-50 text-green-600 rounded">
+              독차
+            </span>
+          )}
+          {order.IsUrgency && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-red-50 text-red-600 rounded">
+              긴급
+            </span>
+          )}
+        </div>
+      </div>
+
       <div className="flex items-start gap-3">
         {/* 구간 표시 아이콘 */}
-        <div className="flex flex-col items-center pt-1">
-          <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-          <div className="w-0.5 h-16 bg-gray-200 my-1" />
-          <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+        <div className="flex flex-col items-center pt-0.5">
+          <div className="w-2 h-2 rounded-full bg-blue-600" />
+          <div className="w-0.5 h-12 bg-gray-200 my-0.5" />
+          <div className="w-2 h-2 rounded-full bg-red-500" />
         </div>
 
         {/* 상하차지 정보 */}
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 space-y-3">
           {/* 상차지 */}
           <LocationInfo
             label="상차지"
             name={order.LoadArea?.Name}
             address={order.LoadArea?.FullAddr}
             date={formatDateTime(order.LoadArea?.Date)}
+            method={order.LoadArea?.CargoMoveMethod}
+            contactName={order.LoadArea?.ManagerName}
+            contactPhone={order.LoadArea?.ManagerPhoneNum}
           />
 
           {/* 하차지 */}
@@ -111,6 +144,9 @@ function RouteSection({ order }) {
             name={order.DropArea?.Name}
             address={order.DropArea?.FullAddr}
             date={formatDateTime(order.DropArea?.Date)}
+            method={order.DropArea?.CargoMoveMethod}
+            contactName={order.DropArea?.ManagerName}
+            contactPhone={order.DropArea?.ManagerPhoneNum}
           />
         </div>
       </div>
@@ -121,13 +157,38 @@ function RouteSection({ order }) {
 /**
  * 위치 정보 컴포넌트
  */
-function LocationInfo({ label, name, address, date }) {
+function LocationInfo({ label, name, address, date, method, contactName, contactPhone }) {
   return (
     <div>
-      <p className="text-xs text-gray-400 mb-1">{label}</p>
+      <div className="flex items-center gap-2 mb-0.5">
+        <p className="text-[10px] text-gray-400">{label}</p>
+        {method && (
+          <span className="px-1.5 py-0.5 text-[9px] font-medium bg-blue-50 text-blue-600 rounded">
+            {method}
+          </span>
+        )}
+      </div>
       <p className="text-sm font-semibold text-gray-900">{name || '-'}</p>
-      <p className="text-xs text-gray-500 mt-0.5">{address || '-'}</p>
-      <p className="text-xs text-gray-400 mt-1">{date}</p>
+      <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{address || '-'}</p>
+      <p className="text-[11px] text-gray-400 mt-0.5">{date}</p>
+      {(contactName || contactPhone) && (
+        <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+          {contactName && (
+            <span className="text-gray-600">{contactName}</span>
+          )}
+          {contactPhone && (
+            <>
+              {contactName && <span className="text-gray-300">•</span>}
+              <a
+                href={`tel:${contactPhone}`}
+                className="text-green-600 font-medium"
+              >
+                {formatPhoneNumber(contactPhone)}
+              </a>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -143,11 +204,12 @@ function CargoInfoSection({ order }) {
       </h2>
       <InfoRow label="화물번호" value={order.OrderNum} />
       <InfoRow label="화주" value={order.CargoCorpName} />
+      <InfoRow label="화주 담당자" value={order.CargoCorpManagerName} />
+      <InfoRow label="화주 연락처" value={formatPhoneNumber(order.CargoCorpContactNumber)} />
       <InfoRow label="접수일" value={formatDateTime(order.RegistDate)} />
       <InfoRow label="톤수" value={order.ExpectCarWeight} />
       <InfoRow label="차종" value={order.ExpectCarType} />
       <InfoRow label="차체타입" value={formatArray(order.ExpectCarBodyTypes)} />
-      <InfoRow label="운임" value={formatCurrency(order.Pay)} />
       <InfoRow label="청구금" value={formatCurrency(order.TotalSalesAmount)} />
       <InfoRow label="총배차금" value={formatCurrency(order.TotalPurchaseAmount)} />
       <InfoRow label="거리" value={formatDistance(order.Distance)} />
@@ -167,7 +229,7 @@ function DriverInfoSection({ order }) {
         차주 정보
       </h2>
       <InfoRow label="차주명" value={order.CarName} />
-      <InfoRow label="연락처" value={order.CarPhoneNum} />
+      <InfoRow label="연락처" value={formatPhoneNumber(order.CarPhoneNum)} />
       <InfoRow label="차량번호" value={order.CarNum} />
       <InfoRow
         label="차량정보"

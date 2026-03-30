@@ -99,7 +99,7 @@ export default function OrderListPage() {
       <div className="sticky top-0 z-10 bg-white">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <h1 className="text-lg font-bold text-gray-900">픽카고</h1>
+          <h1 className="text-lg font-bold text-gray-900">ULA</h1>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}

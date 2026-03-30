@@ -18,7 +18,7 @@ export default function LoginPage() {
     <div className="min-h-dvh flex flex-col items-center justify-center px-6 bg-gray-50">
       {/* 로고 영역 */}
       <div className="mb-8 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">픽카고</h1>
+        <h1 className="text-2xl font-bold text-gray-900">ULA</h1>
         <p className="text-sm text-gray-500 mt-1">배차 현황 모바일 조회</p>
       </div>
 

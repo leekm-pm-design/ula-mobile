@@ -56,3 +56,39 @@ export const formatArray = (array) => {
   if (!array || !Array.isArray(array) || array.length === 0) return '-';
   return array.join(', ');
 };
+
+/**
+ * 전화번호에 하이픈(-) 추가
+ * @param {string} phoneNumber - 전화번호
+ * @returns {string} 포맷된 전화번호 또는 null
+ */
+export const formatPhoneNumber = (phoneNumber) => {
+  if (!phoneNumber) return null;
+
+  // 숫자만 추출
+  const numbers = phoneNumber.replace(/[^0-9]/g, '');
+
+  // 이미 하이픈이 있거나 숫자가 아닌 경우 원본 반환
+  if (numbers.length < 9) return phoneNumber;
+
+  // 010-1234-5678 (11자리)
+  if (numbers.length === 11) {
+    return numbers.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+  }
+
+  // 02-123-4567 또는 02-1234-5678 (서울 지역번호)
+  if (numbers.startsWith('02')) {
+    if (numbers.length === 9) {
+      return numbers.replace(/(\d{2})(\d{3})(\d{4})/, '$1-$2-$3');
+    }
+    return numbers.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+  }
+
+  // 031-123-4567 또는 031-1234-5678 (10자리)
+  if (numbers.length === 10) {
+    return numbers.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+  }
+
+  // 기타 형식
+  return phoneNumber;
+};
