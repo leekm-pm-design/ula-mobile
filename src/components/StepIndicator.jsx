@@ -1,22 +1,15 @@
-const STEPS = ['등록', '접수', '배차', '운행', '완료'];
+import { ORDER_STEPS, getStatusIndex } from '../constants/orderStatus';
 
+/**
+ * 주문 상태 진행 단계 표시 컴포넌트
+ * @param {Object} props
+ * @param {string} props.currentStatus - 현재 주문 상태
+ */
 export default function StepIndicator({ currentStatus }) {
-  // 상태에 따른 인덱스 매핑
-  const getStatusIndex = (status) => {
-    const statusMap = {
-      '등록': 0,
-      '접수': 1,
-      '배차': 2,
-      '운행': 3,
-      '완료': 4,
-      '취소': -1  // 취소는 별도 처리
-    };
-    return statusMap[status] ?? -1;
-  };
-
   const currentIdx = getStatusIndex(currentStatus);
   const isCancelled = currentStatus === '취소';
 
+  // 취소 상태인 경우 별도 UI 표시
   if (isCancelled) {
     return (
       <div className="flex items-center justify-center w-full px-2 py-4">
@@ -34,11 +27,13 @@ export default function StepIndicator({ currentStatus }) {
 
   return (
     <div className="flex items-center w-full px-4 py-4">
-      {STEPS.map((step, i) => {
+      {ORDER_STEPS.map((step, i) => {
         const isDone = i <= currentIdx;
         const isCurrent = i === currentIdx;
+
         return (
           <>
+            {/* 단계 원형 아이콘 */}
             <div key={step} className="flex flex-col items-center">
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0
@@ -46,11 +41,15 @@ export default function StepIndicator({ currentStatus }) {
               >
                 {isDone ? '✓' : i + 1}
               </div>
-              <span className={`mt-1 text-[10px] whitespace-nowrap ${isCurrent ? 'text-blue-600 font-semibold' : isDone ? 'text-gray-700' : 'text-gray-400'}`}>
+              <span
+                className={`mt-1 text-[10px] whitespace-nowrap ${isCurrent ? 'text-blue-600 font-semibold' : isDone ? 'text-gray-700' : 'text-gray-400'}`}
+              >
                 {step}
               </span>
             </div>
-            {i < STEPS.length - 1 && (
+
+            {/* 단계 간 연결선 */}
+            {i < ORDER_STEPS.length - 1 && (
               <div className={`flex-1 h-0.5 mx-2 ${i < currentIdx ? 'bg-blue-600' : 'bg-gray-200'}`} />
             )}
           </>

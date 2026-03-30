@@ -1,26 +1,23 @@
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
+import { formatTime } from '../utils/dateUtils';
+import { formatNumber } from '../utils/formatUtils';
 
+/**
+ * 화물 카드 컴포넌트
+ * @param {Object} props
+ * @param {Object} props.order - 주문 정보 객체
+ */
 export default function CargoCard({ order }) {
   const navigate = useNavigate();
 
-  // 시간 포맷팅 (HH:mm)
-  const formatTime = (dateString) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  };
-
-  // 날짜 포맷팅 (MM/DD)
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return `${date.getMonth() + 1}/${date.getDate()}`;
+  const handleClick = () => {
+    navigate(`/orders/${order.OrderNum}`, { state: { order } });
   };
 
   return (
     <div
-      onClick={() => navigate(`/orders/${order.OrderNum}`, { state: { order } })}
+      onClick={handleClick}
       className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 active:bg-gray-50 cursor-pointer"
     >
       {/* 상단: 화물번호 + 상태 + 화주명 */}
@@ -30,79 +27,115 @@ export default function CargoCard({ order }) {
           {order.CargoCorpName && (
             <>
               <span className="text-gray-300">|</span>
-              <span className="text-xs font-medium text-gray-900 truncate">{order.CargoCorpName}</span>
+              <span className="text-xs font-medium text-gray-900 truncate">
+                {order.CargoCorpName}
+              </span>
             </>
           )}
         </div>
         <StatusBadge status={order.OrdState} />
       </div>
 
-      {/* 상하차지 정보 - 컴팩트 */}
+      {/* 상하차지 정보 */}
       <div className="space-y-2 mb-2">
         {/* 상차지 */}
-        <div className="flex items-start gap-1.5">
-          <span className="text-[10px] text-white bg-blue-600 px-1 py-0.5 rounded font-medium shrink-0">상차</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-900 truncate">
-              {order.LoadArea?.Name || '-'}
-            </p>
-            <p className="text-[10px] text-gray-500 truncate mt-0.5">
-              {order.LoadArea?.FullAddr || '-'}
-            </p>
-          </div>
-          <span className="text-[10px] text-gray-400 shrink-0">
-            {formatTime(order.LoadArea?.Date)}
-          </span>
-        </div>
+        <LocationRow
+          label="상차"
+          bgColor="bg-blue-600"
+          name={order.LoadArea?.Name}
+          address={order.LoadArea?.FullAddr}
+          time={formatTime(order.LoadArea?.Date)}
+        />
 
         {/* 하차지 */}
-        <div className="flex items-start gap-1.5">
-          <span className="text-[10px] text-white bg-red-600 px-1 py-0.5 rounded font-medium shrink-0">하차</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-900 truncate">
-              {order.DropArea?.Name || '-'}
-            </p>
-            <p className="text-[10px] text-gray-500 truncate mt-0.5">
-              {order.DropArea?.FullAddr || '-'}
-            </p>
-          </div>
-          <span className="text-[10px] text-gray-400 shrink-0">
-            {formatTime(order.DropArea?.Date)}
-          </span>
-        </div>
+        <LocationRow
+          label="하차"
+          bgColor="bg-red-600"
+          name={order.DropArea?.Name}
+          address={order.DropArea?.FullAddr}
+          time={formatTime(order.DropArea?.Date)}
+        />
       </div>
 
       {/* 하단: 차량 정보 + 금액 정보 */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
         {/* 차량 정보 */}
-        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-          {order.ExpectCarWeight && <span className="bg-gray-100 px-1.5 py-0.5 rounded">{order.ExpectCarWeight}</span>}
-          {order.ExpectCarType && <span className="bg-gray-100 px-1.5 py-0.5 rounded">{order.ExpectCarType}</span>}
-          {order.ExpectCarBodyTypes && order.ExpectCarBodyTypes.length > 0 && (
-            <span className="bg-gray-100 px-1.5 py-0.5 rounded">{order.ExpectCarBodyTypes[0]}</span>
-          )}
-        </div>
+        <VehicleInfo order={order} />
 
         {/* 금액 정보 */}
-        <div className="flex items-center gap-3">
-          {order.TotalSalesAmount !== undefined && (
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] text-gray-400">청구</span>
-              <span className="text-xs font-semibold text-blue-600">
-                {Number(order.TotalSalesAmount).toLocaleString()}
-              </span>
-            </div>
-          )}
-          {order.TotalPurchaseAmount !== undefined && (
-            <div className="flex items-center gap-1">
-              <span className="text-[9px] text-gray-400">배차</span>
-              <span className="text-xs font-semibold text-green-600">
-                {Number(order.TotalPurchaseAmount).toLocaleString()}
-              </span>
-            </div>
-          )}
-        </div>
+        <AmountInfo order={order} />
       </div>
+    </div>
+  );
+}
+
+/**
+ * 상하차지 행 컴포넌트
+ */
+function LocationRow({ label, bgColor, name, address, time }) {
+  return (
+    <div className="flex items-start gap-1.5">
+      <span className={`text-[10px] text-white ${bgColor} px-1 py-0.5 rounded font-medium shrink-0`}>
+        {label}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium text-gray-900 truncate">{name || '-'}</p>
+        <p className="text-[10px] text-gray-500 truncate mt-0.5">{address || '-'}</p>
+      </div>
+      <span className="text-[10px] text-gray-400 shrink-0">{time}</span>
+    </div>
+  );
+}
+
+/**
+ * 차량 정보 컴포넌트
+ */
+function VehicleInfo({ order }) {
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+      {order.ExpectCarWeight && (
+        <span className="bg-gray-100 px-1.5 py-0.5 rounded">{order.ExpectCarWeight}</span>
+      )}
+      {order.ExpectCarType && (
+        <span className="bg-gray-100 px-1.5 py-0.5 rounded">{order.ExpectCarType}</span>
+      )}
+      {order.ExpectCarBodyTypes && order.ExpectCarBodyTypes.length > 0 && (
+        <span className="bg-gray-100 px-1.5 py-0.5 rounded">
+          {order.ExpectCarBodyTypes[0]}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 금액 정보 컴포넌트
+ */
+function AmountInfo({ order }) {
+  return (
+    <div className="flex items-center gap-3">
+      {order.TotalSalesAmount !== undefined && (
+        <AmountItem label="청구" value={order.TotalSalesAmount} colorClass="text-blue-600" />
+      )}
+      {order.TotalPurchaseAmount !== undefined && (
+        <AmountItem
+          label="배차"
+          value={order.TotalPurchaseAmount}
+          colorClass="text-green-600"
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * 금액 항목 컴포넌트
+ */
+function AmountItem({ label, value, colorClass }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className="text-[9px] text-gray-400">{label}</span>
+      <span className={`text-xs font-semibold ${colorClass}`}>{formatNumber(value)}</span>
     </div>
   );
 }
