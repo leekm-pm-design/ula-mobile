@@ -33,7 +33,13 @@ export function useAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('userGuid');
+    localStorage.removeItem('userName');
   }, []);
 
-  return { login, logout, loading, error, isLoggedIn };
+  const user = {
+    guid: localStorage.getItem('userGuid'),
+    name: localStorage.getItem('userName')
+  };
+
+  return { login, logout, loading, error, isLoggedIn, user };
 }

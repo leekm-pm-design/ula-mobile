@@ -90,3 +90,43 @@ export const formatDateTime = (dateString) => {
     return '-';
   }
 };
+
+/**
+ * 날짜만 포맷팅 (YYYY. MM. DD)
+ * @param {string} dateString - ISO 날짜 문자열
+ * @returns {string} 포맷된 날짜 또는 '-'
+ */
+export const formatDateOnly = (dateString) => {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch (error) {
+    console.error('formatDateOnly error:', error);
+    return '-';
+  }
+};
+
+/**
+ * 간단한 날짜/시간 포맷팅 (MM/DD HH:mm)
+ * @param {string} dateString - ISO 날짜 문자열
+ * @returns {string} 포맷된 날짜/시간 또는 '-'
+ */
+export const formatDateTimeShort = (dateString) => {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day} ${hours}:${minutes}`;
+  } catch (error) {
+    console.error('formatDateTimeShort error:', error);
+    return '-';
+  }
+};

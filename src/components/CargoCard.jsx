@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge';
-import { formatTime } from '../utils/dateUtils';
+import { formatDateTimeShort } from '../utils/dateUtils';
 import { formatNumber } from '../utils/formatUtils';
 
 /**
@@ -20,13 +20,34 @@ export default function CargoCard({ order }) {
       onClick={handleClick}
       className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 active:bg-gray-50 cursor-pointer"
     >
-      {/* 상단: 화물번호 + 상태 + 화주명 */}
+      {/* 상단: 화물번호 + 주문유형 뱃지 + 화주명 / 상태 */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="text-xs text-gray-500">#{order.OrderNum || '-'}</span>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <span className="text-xs text-gray-500 shrink-0">#{order.OrderNum || '-'}</span>
+          {/* 주문 유형 뱃지 */}
+          {order.IsRound && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-purple-50 text-purple-600 rounded shrink-0">
+              왕복
+            </span>
+          )}
+          {order.IsLayover && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-orange-50 text-orange-600 rounded shrink-0">
+              경유
+            </span>
+          )}
+          {order.IsAllowMix && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 rounded shrink-0">
+              혼적
+            </span>
+          )}
+          {order.IsUrgency && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-red-50 text-red-600 rounded shrink-0">
+              긴급
+            </span>
+          )}
           {order.CargoCorpName && (
             <>
-              <span className="text-gray-300">|</span>
+              <span className="text-gray-300 shrink-0">|</span>
               <span className="text-xs font-medium text-gray-900 truncate">
                 {order.CargoCorpName}
               </span>
@@ -44,7 +65,7 @@ export default function CargoCard({ order }) {
           bgColor="bg-blue-600"
           name={order.LoadArea?.Name}
           address={order.LoadArea?.FullAddr}
-          time={formatTime(order.LoadArea?.Date)}
+          time={formatDateTimeShort(order.LoadArea?.Date)}
         />
 
         {/* 하차지 */}
@@ -53,7 +74,7 @@ export default function CargoCard({ order }) {
           bgColor="bg-red-600"
           name={order.DropArea?.Name}
           address={order.DropArea?.FullAddr}
-          time={formatTime(order.DropArea?.Date)}
+          time={formatDateTimeShort(order.DropArea?.Date)}
         />
       </div>
 

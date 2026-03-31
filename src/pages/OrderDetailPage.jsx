@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import StepIndicator from '../components/StepIndicator';
-import { formatDateTime } from '../utils/dateUtils';
+import { formatDateTime, formatTime, formatDateOnly } from '../utils/dateUtils';
 import { formatCurrency, formatDistance, formatArray, formatPhoneNumber } from '../utils/formatUtils';
 
 /**
@@ -27,6 +27,15 @@ export default function OrderDetailPage() {
   const location = useLocation();
   const [order] = useState(location.state?.order || null);
   const [loading] = useState(false);
+
+  // 디버깅: 주문 데이터 확인
+  if (order) {
+    console.log('Order detail data:', order);
+    console.log('AddPays:', order.AddPays);
+    console.log('AddPays length:', order.AddPays?.length);
+    console.log('TotalSalesAddPay:', order.TotalSalesAddPay);
+    console.log('TotalPurchaseAddPay:', order.TotalPurchaseAddPay);
+  }
 
   // 로딩 상태
   if (loading) {
@@ -95,18 +104,14 @@ function RouteSection({ order }) {
               왕복
             </span>
           )}
-          {!order.IsRound && (
-            <span className="px-2 py-0.5 text-[10px] font-medium bg-gray-50 text-gray-600 rounded">
-              편도
+          {order.IsLayover && (
+            <span className="px-2 py-0.5 text-[10px] font-medium bg-orange-50 text-orange-600 rounded">
+              경유
             </span>
           )}
-          {order.IsAllowMix ? (
+          {order.IsAllowMix && (
             <span className="px-2 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 rounded">
               혼적
-            </span>
-          ) : (
-            <span className="px-2 py-0.5 text-[10px] font-medium bg-green-50 text-green-600 rounded">
-              독차
             </span>
           )}
           {order.IsUrgency && (
@@ -198,24 +203,99 @@ function LocationInfo({ label, name, address, date, method, contactName, contact
  */
 function CargoInfoSection({ order }) {
   return (
-    <div className="bg-white mx-4 mt-3 rounded-xl shadow-sm border border-gray-100 p-4">
-      <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-        화물 정보
-      </h2>
-      <InfoRow label="화물번호" value={order.OrderNum} />
-      <InfoRow label="화주" value={order.CargoCorpName} />
-      <InfoRow label="화주 담당자" value={order.CargoCorpManagerName} />
-      <InfoRow label="화주 연락처" value={formatPhoneNumber(order.CargoCorpContactNumber)} />
-      <InfoRow label="접수일" value={formatDateTime(order.RegistDate)} />
-      <InfoRow label="톤수" value={order.ExpectCarWeight} />
-      <InfoRow label="차종" value={order.ExpectCarType} />
-      <InfoRow label="차체타입" value={formatArray(order.ExpectCarBodyTypes)} />
-      <InfoRow label="청구금" value={formatCurrency(order.TotalSalesAmount)} />
-      <InfoRow label="총배차금" value={formatCurrency(order.TotalPurchaseAmount)} />
-      <InfoRow label="거리" value={formatDistance(order.Distance)} />
-      <InfoRow label="화물내역" value={order.Items} />
-      <InfoRow label="추가요청사항" value={order.AddRequests} />
-    </div>
+    <>
+      {/* 기본 정보 */}
+      <div className="bg-white mx-4 mt-3 rounded-xl shadow-sm border border-gray-100 p-4">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          화물 정보
+        </h2>
+        <InfoRow label="화물번호" value={order.OrderNum} />
+        <InfoRow label="화주" value={order.CargoCorpName} />
+        <InfoRow label="화주 담당자" value={order.CargoCorpManagerName} />
+        <InfoRow label="화주 연락처" value={formatPhoneNumber(order.CargoCorpContactNumber)} />
+        <InfoRow label="접수일시" value={formatDateTime(order.RegistDate)} />
+        <InfoRow label="톤수" value={order.ExpectCarWeight} />
+        <InfoRow label="차종" value={order.ExpectCarType} />
+        <InfoRow label="차체타입" value={formatArray(order.ExpectCarBodyTypes)} />
+        <InfoRow label="거리" value={formatDistance(order.Distance)} />
+        <InfoRow label="화물내역" value={order.Items} />
+        <InfoRow label="추가요청사항" value={order.AddRequests} />
+      </div>
+
+      {/* 금액 정보 */}
+      <div className="bg-white mx-4 mt-3 rounded-xl shadow-sm border border-gray-100 p-4">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          금액 정보
+        </h2>
+
+        {/* 청구금 */}
+        <div className="flex justify-between py-1.5 border-b border-gray-100">
+          <span className="text-sm text-gray-500">청구금</span>
+          <span className="text-sm font-bold text-blue-600">{formatCurrency(order.TotalSalesAmount)}</span>
+        </div>
+
+        {/* 배차금 */}
+        <div className="flex justify-between py-1.5 border-b border-gray-100">
+          <span className="text-sm text-gray-500">배차금</span>
+          <span className="text-sm font-bold text-green-600">{formatCurrency(order.TotalPurchaseAmount)}</span>
+        </div>
+
+        {/* 수익 및 수익률 */}
+        <div className="mt-2 py-2 bg-gray-50 rounded-lg px-3">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-bold text-gray-900">수익</span>
+            <div className="text-right">
+              <span className={`text-base font-bold ${(order.TotalSalesAmount - order.TotalPurchaseAmount) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {formatCurrency(order.TotalSalesAmount - order.TotalPurchaseAmount)}
+              </span>
+              <span className={`text-xs font-medium ml-1 ${((order.TotalSalesAmount - order.TotalPurchaseAmount) / order.TotalSalesAmount * 100) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ({((order.TotalSalesAmount - order.TotalPurchaseAmount) / order.TotalSalesAmount * 100).toFixed(1)}%)
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 추가비용 상세 */}
+        {((order.TotalSalesAddPay !== undefined && order.TotalSalesAddPay !== 0) ||
+          (order.TotalPurchaseAddPay !== undefined && order.TotalPurchaseAddPay !== 0)) && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <span className="text-xs font-medium text-gray-400 block mb-1.5">추가비용 상세</span>
+
+            {/* 청구 추가비용 */}
+            {order.TotalSalesAddPay !== undefined && order.TotalSalesAddPay !== 0 && (
+              <div className="flex justify-between py-1">
+                <span className="text-xs text-gray-500">청구 추가</span>
+                <span className={`text-xs font-semibold ${order.TotalSalesAddPay < 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                  {formatCurrency(order.TotalSalesAddPay)}
+                </span>
+              </div>
+            )}
+
+            {/* 배차 추가비용 */}
+            {order.TotalPurchaseAddPay !== undefined && order.TotalPurchaseAddPay !== 0 && (
+              <div className="flex justify-between py-1">
+                <span className="text-xs text-gray-500">배차 추가</span>
+                <span className={`text-xs font-semibold ${order.TotalPurchaseAddPay < 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                  {formatCurrency(order.TotalPurchaseAddPay)}
+                </span>
+              </div>
+            )}
+
+            {/* 항목별 상세 */}
+            {order.AddPays && order.AddPays.length > 0 && (
+              <div className="mt-1.5 pt-1.5 border-t border-gray-100">
+                {order.AddPays.map((pay, idx) => (
+                  <div key={idx} className="flex justify-between py-0.5">
+                    <span className="text-xs text-gray-500">· {pay.Name || pay.Type || '기타'}</span>
+                    <span className="text-xs font-medium">{formatCurrency(pay.Amount || pay.Pay)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

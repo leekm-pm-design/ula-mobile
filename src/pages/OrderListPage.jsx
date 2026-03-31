@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import CargoCard from '../components/CargoCard';
 import { STATUS_FILTERS } from '../constants/orderStatus';
 import { getTodayString, getTomorrowString } from '../utils/dateUtils';
+import BottomNav from '../components/BottomNav';
 
 /**
  * 화물 리스트 페이지
@@ -12,6 +13,7 @@ import { getTodayString, getTomorrowString } from '../utils/dateUtils';
 export default function OrderListPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('all'); // 'all' or 'new'
   const [statusFilter, setStatusFilter] = useState('전체');
   const [search, setSearch] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(true);
@@ -28,7 +30,6 @@ export default function OrderListPage() {
     setLoading(true);
     try {
       const data = await getOrders({ startDate, endDate });
-      console.log('Orders API response:', data);
 
       // API 응답 구조에 맞춰 데이터 추출
       let ordersList = [];
@@ -56,37 +57,64 @@ export default function OrderListPage() {
     fetchOrders();
   }, [fetchOrders]);
 
-  // 상태별 건수 계산
+  // 신규건 필터 함수 (1시간 이내 접수)
+  const isNewOrder = (order) => {
+    if (!order.RegistDate) return false;
+    const registTime = new Date(order.RegistDate).getTime();
+    const now = Date.now();
+    const oneHourInMs = 60 * 60 * 1000;
+    return (now - registTime) <= oneHourInMs;
+  };
+
+  // 상태별 건수 계산 (신규건 모드일 때는 신규건만 카운트)
   const statusCounts = STATUS_FILTERS.reduce((acc, status) => {
+    const targetOrders = viewMode === 'new' ? orders.filter(isNewOrder) : orders;
     if (status === '전체') {
-      acc[status] = orders.length;
+      acc[status] = targetOrders.length;
     } else {
-      acc[status] = orders.filter((o) => o.OrdState === status).length;
+      acc[status] = targetOrders.filter((o) => o.OrdState === status).length;
     }
     return acc;
   }, {});
 
   // 필터링
-  const filtered = orders.filter((o) => {
-    // 상태 필터
-    if (statusFilter !== '전체' && o.OrdState !== statusFilter) return false;
+  const filtered = orders
+    .filter((o) => {
+      // 신규건 보기 모드일 때
+      if (viewMode === 'new' && !isNewOrder(o)) return false;
 
-    // 검색어 필터
-    if (search) {
-      const q = search.toLowerCase();
-      const loadAreaText = o.LoadArea?.Name || o.LoadArea?.Addr1 || '';
-      const dropAreaText = o.DropArea?.Name || o.DropArea?.Addr1 || '';
-      const cargoCorpName = o.CargoCorpName || '';
-      return (
-        (o.OrderNum || '').toLowerCase().includes(q) ||
-        loadAreaText.toLowerCase().includes(q) ||
-        dropAreaText.toLowerCase().includes(q) ||
-        cargoCorpName.toLowerCase().includes(q)
-      );
-    }
+      // 상태 필터
+      if (statusFilter !== '전체' && o.OrdState !== statusFilter) return false;
 
-    return true;
-  });
+      // 검색어 필터
+      if (search) {
+        const q = search.toLowerCase();
+        const loadAreaText = o.LoadArea?.Name || o.LoadArea?.Addr1 || '';
+        const dropAreaText = o.DropArea?.Name || o.DropArea?.Addr1 || '';
+        const cargoCorpName = o.CargoCorpName || '';
+        return (
+          (o.OrderNum || '').toLowerCase().includes(q) ||
+          loadAreaText.toLowerCase().includes(q) ||
+          dropAreaText.toLowerCase().includes(q) ||
+          cargoCorpName.toLowerCase().includes(q)
+        );
+      }
+
+      return true;
+    })
+    .sort((a, b) => {
+      // 신규 탭: 접수시간 기준 내림차순 정렬 (최신순)
+      if (viewMode === 'new') {
+        const dateA = a.RegistDate ? new Date(a.RegistDate).getTime() : 0;
+        const dateB = b.RegistDate ? new Date(b.RegistDate).getTime() : 0;
+        return dateB - dateA;
+      }
+
+      // 전체 탭: 상차시간 기준 오름차순 정렬 (가까운 시간이 위로)
+      const dateA = a.LoadArea?.Date ? new Date(a.LoadArea.Date).getTime() : Infinity;
+      const dateB = b.LoadArea?.Date ? new Date(b.LoadArea.Date).getTime() : Infinity;
+      return dateA - dateB;
+    });
 
   const handleLogout = () => {
     logout();
@@ -94,37 +122,66 @@ export default function OrderListPage() {
   };
 
   return (
-    <div className="min-h-dvh bg-gray-50 flex flex-col">
+    <div className="min-h-dvh bg-gray-50 flex flex-col pb-20">
       {/* 헤더 + 필터 영역 (고정) */}
       <div className="sticky top-0 z-10 bg-white">
         {/* 헤더 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
           <h1 className="text-lg font-bold text-gray-900">ULA</h1>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className="flex items-center gap-1 text-sm text-gray-700 py-1 px-2 hover:bg-gray-50 rounded"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
-              <span className="text-xs">필터</span>
-            </button>
-            <button onClick={handleLogout} className="text-xs text-gray-500 py-1 px-2">
-              로그아웃
-            </button>
-          </div>
+          <button onClick={handleLogout} className="text-xs text-gray-500 py-1 px-2">
+            로그아웃
+          </button>
+        </div>
+
+        {/* 전체/신규 탭 */}
+        <div className="flex border-b border-gray-200 bg-white">
+          <button
+            onClick={() => setViewMode('all')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              viewMode === 'all'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500'
+            }`}
+          >
+            전체
+          </button>
+          <button
+            onClick={() => setViewMode('new')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors relative ${
+              viewMode === 'new'
+                ? 'text-blue-600 border-b-2 border-blue-600'
+                : 'text-gray-500'
+            }`}
+          >
+            신규
+            {orders.filter(isNewOrder).length > 0 && (
+              <span className="absolute top-2 right-[calc(50%-20px)] w-2 h-2 bg-red-500 rounded-full"></span>
+            )}
+          </button>
         </div>
 
         {/* 필터 영역 */}
         <div className="bg-gray-50">
+          {/* 필터 헤더 */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-white">
+            <span className="text-sm font-medium text-gray-700">필터</span>
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="p-1"
+            >
+              <svg
+                className={`w-4 h-4 text-gray-500 transition-transform ${isFilterOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
           {isFilterOpen && (
-            <div className="pb-3">
+            <div className="pb-3 bg-gray-50">
               {/* 검색 */}
               <div className="px-4 pt-2">
                 <input
@@ -198,7 +255,7 @@ export default function OrderListPage() {
       {/* 새로고침 FAB */}
       <button
         onClick={fetchOrders}
-        className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center active:bg-blue-700"
+        className="fixed bottom-24 right-6 w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center active:bg-blue-700"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -209,6 +266,9 @@ export default function OrderListPage() {
           />
         </svg>
       </button>
+
+      {/* 하단 탭 네비게이션 */}
+      <BottomNav />
     </div>
   );
 }
